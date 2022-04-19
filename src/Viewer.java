@@ -1,14 +1,14 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.geom.Path2D;
 import java.awt.image.BufferedImage;
+import java.util.Arrays;
 
 public class Viewer {
-    private JFrame frame;
-    private Container pane;
-    private JSlider horizontalSlider;
-    private JSlider verticalSlider;
-    private JPanel renderPanel;
+    private final JFrame frame;
+    private final Container pane;
+    private final JSlider horizontalSlider;
+    private final JSlider verticalSlider;
+    private final JPanel renderPanel;
     private Tetrahedron shape;  // TODO expand this to an arraylist of shapes in the scene
 
     public Viewer() {
@@ -43,32 +43,6 @@ public class Viewer {
         this.shape = shape;
     }
 
-    private void old_render(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g;
-        g2.setColor(Color.BLACK);
-        g2.fillRect(0, 0, renderPanel.getWidth(), renderPanel.getHeight());
-
-        // get rotation values from the GUI sliders
-        double heading = Math.toRadians(horizontalSlider.getValue());
-        double pitch = Math.toRadians(verticalSlider.getValue());
-
-        // build a transformation matrix for the current rotation
-        Matrix3 headingTransform = new Matrix3(new double [] {
-                Math.cos(heading), 0, -Math.sin(heading),
-                0, 1, 0,
-                Math.sin(heading), 0, Math.cos(heading)
-        });
-        Matrix3 pitchTransform = new Matrix3((new double[] {
-                1, 0, 0,
-                0, Math.cos(pitch), Math.sin(pitch),
-                0, -Math.sin(pitch), Math.cos(pitch)
-        }));
-        Matrix3 transform = headingTransform.multiply(pitchTransform);
-
-        // rendering all objects
-        shape.render(g2, renderPanel.getWidth()/2, renderPanel.getHeight()/2, transform);
-    }
-
     private Matrix3 getTransform(double heading, double pitch) {
         Matrix3 headingTransform = new Matrix3(new double [] {
                 Math.cos(heading), 0, -Math.sin(heading),
@@ -89,10 +63,8 @@ public class Viewer {
                                                  renderPanel.getHeight(),
                                                  BufferedImage.TYPE_INT_ARGB);
         double[] zBuffer = new double[buffer.getWidth() * buffer.getHeight()];
-        // initialise depth buffer with furthest possible values
-        for (int i=0; i<zBuffer.length; i++) {
-            zBuffer[i] = Double.NEGATIVE_INFINITY;
-        }
+        // initialise depth buffer with the furthest possible values
+        Arrays.fill(zBuffer, Double.NEGATIVE_INFINITY);
 
         // get rotation values from the GUI sliders
         double heading = Math.toRadians(horizontalSlider.getValue());
@@ -108,12 +80,27 @@ public class Viewer {
             Vertex v3 = transform.transform(t.v3);
 
             // translate to the middle of the view
-            v1.x += renderPanel.getWidth()/2;
-            v1.y += renderPanel.getHeight()/2;
-            v2.x += renderPanel.getWidth()/2;
-            v2.y += renderPanel.getHeight()/2;
-            v3.x += renderPanel.getWidth()/2;
-            v3.y += renderPanel.getHeight()/2;
+            v1.x += renderPanel.getWidth()/2.0;
+            v1.y += renderPanel.getHeight()/2.0;
+            v2.x += renderPanel.getWidth()/2.0;
+            v2.y += renderPanel.getHeight()/2.0;
+            v3.x += renderPanel.getWidth()/2.0;
+            v3.y += renderPanel.getHeight()/2.0;
+
+            // calculate vector cross product to get lighting angle
+            Vertex norm = new Vertex(
+                    v1.y * v2.z - v1.z * v2.y,
+                    v1.z * v2.x - v1.x * v2.z,
+                    v1.x * v2.y - v1.y * v2.x
+            );
+            double normalLength =
+                    Math.sqrt(norm.x * norm.x + norm.y * norm.y + norm.z * norm.z);
+            norm.x /= normalLength;
+            norm.y /= normalLength;
+            norm.z /= normalLength;
+            double angleCos = Math.abs(norm.z);
+
+            Color tcol = getShade(t.color, angleCos);
 
             // compute rectangular bounds for the triangle
             int minX = (int) Math.max(0, Math.ceil(Math.min(v1.x, Math.min(v2.x, v3.x))));
@@ -135,7 +122,7 @@ public class Viewer {
                     double depth = b1 * v1.z + b2 * v2.z + b3 * v3.z;
                     int zIndex = y * buffer.getWidth() + x;
                     if (b1 >= 0 && b1 <= 1 && b2 >= 0 && b2 <= 1 && b3 >= 0 && b3 <= 1 && zBuffer[zIndex]<depth) {
-                        buffer.setRGB(x, y, t.color.getRGB());
+                        buffer.setRGB(x, y, tcol.getRGB());
                         zBuffer[zIndex] = depth; // update new closest point at this location
                     }
                 }
@@ -146,6 +133,18 @@ public class Viewer {
             // draw new frame
             g2.drawImage(buffer, 0, 0, null);
         }
+    }
+
+    public static Color getShade(Color color, double shade) {
+        double redLinear = Math.pow(color.getRed(), 2.4) * shade;
+        double greenLinear = Math.pow(color.getGreen(), 2.4) * shade;
+        double blueLinear = Math.pow(color.getBlue(), 2.4) * shade;
+
+        int red = (int) Math.pow(redLinear, 1/2.4);
+        int green = (int) Math.pow(greenLinear, 1/2.4);
+        int blue = (int) Math.pow(blueLinear, 1/2.4);
+
+        return new Color(red, green, blue);
     }
 }
 

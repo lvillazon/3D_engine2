@@ -10,8 +10,10 @@ public class Vertex {
         this.y = y;
         this.z = z;
     }
-
+/*
     public Vertex normal() {
-        // return normal of this vector - ie crossproduc
+        // return normal of this vector - ie crossproduct
     }
+
+ */
 }
