@@ -9,6 +9,9 @@ public class Viewer {
     private final JSlider horizontalSlider;
     private final JSlider verticalSlider;
     private final JPanel renderPanel;
+    private int frameCount; // used for fps calculation
+    private long frameStart;
+    private long totalFrameDrawTime;
     private Tetrahedron shape;  // TODO expand this to an arraylist of shapes in the scene
 
     public Viewer() {
@@ -16,6 +19,9 @@ public class Viewer {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         pane = frame.getContentPane();
         pane.setLayout(new BorderLayout());
+        frameCount = 0;
+        frameStart = 0;
+        totalFrameDrawTime = 0;
 
         // sliders for rotation control
         horizontalSlider = new JSlider(0, 360, 180);
@@ -26,7 +32,20 @@ public class Viewer {
         // panel for render output
         renderPanel = new JPanel() {
             public void paintComponent(Graphics g) {
+                // just calls the render method
+                // all the other code is concerned with measuring average fps
+                frameStart = System.nanoTime();
                 render(g);
+                if (frameCount == 0) {
+                    totalFrameDrawTime = System.nanoTime() - frameStart;
+                } else {
+                    totalFrameDrawTime += System.nanoTime() - frameStart;
+                }
+                frameCount++;
+                if (frameCount >= 30) {
+                    System.out.printf("ave draw time: %5.2fms%n", (double)totalFrameDrawTime/frameCount/1000000);
+                    frameCount = 0;
+                }
             }
         };
 
@@ -35,12 +54,19 @@ public class Viewer {
         verticalSlider.addChangeListener(e -> renderPanel.repaint());
 
         pane.add(renderPanel, BorderLayout.CENTER);
-        frame.setSize(400,400);
+        frame.setSize(1616,876);  // full screen on my laptop
+//        frame.setLocation(0, 0);       // normal position - top left of screen
+        frame.setLocation(160, 1072);  // position for laptop when running dual monitors
         frame.setVisible(true);
     }
 
     public void addShape(Tetrahedron shape) {
         this.shape = shape;
+    }
+
+    public void redraw() {
+        //force a manual redraw
+        renderPanel.repaint();
     }
 
     private Matrix3 getTransform(double heading, double pitch) {
@@ -75,18 +101,38 @@ public class Viewer {
 
         for (Triangle t: shape.getTriangles()) {
             // rotate
-            Vertex v1 = transform.transform(t.v1);
-            Vertex v2 = transform.transform(t.v2);
-            Vertex v3 = transform.transform(t.v3);
+            t = transform.applyTo(t);
+            Vertex v1 = t.v1;
+            Vertex v2 = t.v2;
+            Vertex v3 = t.v3;
+//            Vertex v1 = transform.applyTo(t.v1);
+//            Vertex v2 = transform.applyTo(t.v2);
+//            Vertex v3 = transform.applyTo(t.v3);
+
+            // translate based on slider values
+            int xOffset = (int)(
+                    ((double)horizontalSlider.getValue()/horizontalSlider.getMaximum())
+                            * frame.getWidth());
+            int zOffset = verticalSlider.getValue()*100;
+            v1.x += xOffset;
+            v1.y += renderPanel.getHeight()/2.0;
+            v1.z += zOffset;
+            v2.x += xOffset;
+            v2.y += renderPanel.getHeight()/2.0;
+            v2.z += zOffset;
+            v3.x += xOffset;
+            v3.y += renderPanel.getHeight()/2.0;
+            v3.z += zOffset;
 
             // translate to the middle of the view
+            /*
             v1.x += renderPanel.getWidth()/2.0;
             v1.y += renderPanel.getHeight()/2.0;
             v2.x += renderPanel.getWidth()/2.0;
             v2.y += renderPanel.getHeight()/2.0;
             v3.x += renderPanel.getWidth()/2.0;
             v3.y += renderPanel.getHeight()/2.0;
-
+*/
             // calculate vector cross product to get lighting angle
             Vertex norm = new Vertex(
                     v1.y * v2.z - v1.z * v2.y,
@@ -103,6 +149,7 @@ public class Viewer {
             Color tcol = getShade(t.color, angleCos);
 
             // compute rectangular bounds for the triangle
+            // TODO this does not take z coord into account, so shapes do not get smaller as they get further away
             int minX = (int) Math.max(0, Math.ceil(Math.min(v1.x, Math.min(v2.x, v3.x))));
             int maxX = (int) Math.min(buffer.getWidth()-1, Math.floor(Math.max(v1.x, Math.max(v2.x, v3.x))));
             int minY = (int) Math.max(0, Math.ceil(Math.min(v1.y, Math.min(v2.y, v3.y))));

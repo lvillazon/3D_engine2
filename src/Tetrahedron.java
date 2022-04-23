@@ -18,25 +18,4 @@ public class Tetrahedron {
         return sides;
     }
 
-    public void render(Graphics2D g2, double originX, double originY, Matrix3 transform) {
-        g2.translate(originX, originY);
-        g2.setColor(Color.WHITE);
-
-        for (Triangle t: sides) {
-            Vertex v1 = transform.transform(t.v1);
-            Vertex v2 = transform.transform(t.v2);
-            Vertex v3 = transform.transform(t.v3);
-            Path2D path = new Path2D.Double();
-            path.moveTo(v1.x, v1.y);
-            path.lineTo(v2.x, v2.y);
-            path.lineTo(v3.x, v3.y);
-            path.closePath();
-            g2.draw(path);
-            int[] x = {(int)v1.x, (int)v2.x, (int)v3.x};
-            int[] y = {(int)v1.y, (int)v2.y, (int)v3.y};
-            Polygon fillTriangle = new Polygon(x, y, 3);
-            g2.setColor(t.color);
-            g2.fillPolygon(fillTriangle);
-        }
-    }
 }

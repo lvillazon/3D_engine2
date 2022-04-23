@@ -11,5 +11,8 @@ public class Main {
                 new Vertex(100, -100, -100)
         );
         v.addShape(t);
+        while (true) {
+            v.redraw();
+        }
     }
 }
