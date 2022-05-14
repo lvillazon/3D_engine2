@@ -4,17 +4,27 @@ import java.awt.image.BufferedImage;
 import java.util.Arrays;
 
 public class Viewer {
+    public static final int LAPTOP = 0; // flags to set whether to display optimised for laptop or desktop
+    public static final int DESKTOP = 1;
     private final JFrame frame;
     private final Container pane;
     private final JSlider horizontalSlider;
     private final JSlider verticalSlider;
     private final JPanel renderPanel;
-    private int frameCount; // used for fps calculation
-    private long frameStart;
-    private long totalFrameDrawTime;
+    private int frameCount;          // used for fps calculation
+    private long frameStart;         // used for fps calculation
+    private long totalFrameDrawTime; // used for fps calculation
+    private Profiler paintProfiler;  // track how long each part of the rendering takes
+    private Profiler initProfiler;
+    private Profiler allTrianglesProfiler;
+    private Profiler triangleProfiler;
+    private Profiler transformProfiler;
+    private Profiler lightProfiler;
+    private Profiler fillProfiler;
+    private Profiler drawProfiler;
     private Tetrahedron shape;  // TODO expand this to an arraylist of shapes in the scene
 
-    public Viewer() {
+    public Viewer(int monitorConfig) {
         frame = new JFrame();
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         pane = frame.getContentPane();
@@ -22,6 +32,14 @@ public class Viewer {
         frameCount = 0;
         frameStart = 0;
         totalFrameDrawTime = 0;
+        paintProfiler = new Profiler("paint", 100);
+        initProfiler = paintProfiler.addSubProfiler("init");
+        allTrianglesProfiler = paintProfiler.addSubProfiler("triangles");
+        triangleProfiler = allTrianglesProfiler.addSubProfiler("triangles");
+        transformProfiler = triangleProfiler.addSubProfiler("transform");
+        lightProfiler = triangleProfiler.addSubProfiler("light");
+        fillProfiler = triangleProfiler.addSubProfiler("fill");
+        drawProfiler = triangleProfiler.addSubProfiler("draw");
 
         // sliders for rotation control
         horizontalSlider = new JSlider(0, 360, 180);
@@ -33,19 +51,12 @@ public class Viewer {
         renderPanel = new JPanel() {
             public void paintComponent(Graphics g) {
                 // just calls the render method
-                // all the other code is concerned with measuring average fps
-                frameStart = System.nanoTime();
+                // all the other code is concerned with measuring performance
+                paintProfiler.start();
                 render(g);
-                if (frameCount == 0) {
-                    totalFrameDrawTime = System.nanoTime() - frameStart;
-                } else {
-                    totalFrameDrawTime += System.nanoTime() - frameStart;
-                }
-                frameCount++;
-                if (frameCount >= 30) {
-                    System.out.printf("ave draw time: %5.2fms%n", (double)totalFrameDrawTime/frameCount/1000000);
-                    frameCount = 0;
-                }
+                paintProfiler.stop();
+                paintProfiler.print();
+                triangleProfiler.println();
             }
         };
 
@@ -54,9 +65,13 @@ public class Viewer {
         verticalSlider.addChangeListener(e -> renderPanel.repaint());
 
         pane.add(renderPanel, BorderLayout.CENTER);
-        frame.setSize(1616,876);  // full screen on my laptop
-//        frame.setLocation(0, 0);       // normal position - top left of screen
-        frame.setLocation(160, 1072);  // position for laptop when running dual monitors
+        if (monitorConfig == LAPTOP) {
+            frame.setSize(1616, 876);  // full screen on my laptop
+            frame.setLocation(160, 1072);  // position for laptop when running dual monitors
+        } else {
+            frame.setSize(800, 600);
+            frame.setLocation(0, 0);       // normal position - top left of screen
+        }
         frame.setVisible(true);
     }
 
@@ -84,6 +99,7 @@ public class Viewer {
     }
 
     private void render(Graphics g) {
+        initProfiler.start();
         Graphics2D g2 = (Graphics2D) g;
         BufferedImage buffer = new BufferedImage(renderPanel.getWidth(),
                                                  renderPanel.getHeight(),
@@ -98,13 +114,20 @@ public class Viewer {
 
         // build a transformation matrix for the current rotation
         Matrix3 transform = getTransform(heading, pitch);
-
-        for (Triangle t: shape.getTriangles()) {
+        Triangle t = new Triangle();
+        Vertex v1,v2,v3;
+        initProfiler.stop();
+        allTrianglesProfiler.start();
+        
+        for (Triangle q: shape.getTriangles()) {
+            triangleProfiler.start();
+            transformProfiler.start();
             // rotate
-            t = transform.applyTo(t);
-            Vertex v1 = t.v1;
-            Vertex v2 = t.v2;
-            Vertex v3 = t.v3;
+            transform.applyTo(q, t);
+            //t = transform.applyTo(t);
+            v1 = t.v1;
+            v2 = t.v2;
+            v3 = t.v3;
 //            Vertex v1 = transform.applyTo(t.v1);
 //            Vertex v2 = transform.applyTo(t.v2);
 //            Vertex v3 = transform.applyTo(t.v3);
@@ -133,6 +156,9 @@ public class Viewer {
             v3.x += renderPanel.getWidth()/2.0;
             v3.y += renderPanel.getHeight()/2.0;
 */
+            transformProfiler.stop();
+
+            lightProfiler.start();
             // calculate vector cross product to get lighting angle
             Vertex norm = new Vertex(
                     v1.y * v2.z - v1.z * v2.y,
@@ -147,7 +173,9 @@ public class Viewer {
             double angleCos = Math.abs(norm.z);
 
             Color tcol = getShade(t.color, angleCos);
+            lightProfiler.stop();
 
+            fillProfiler.start();
             // compute rectangular bounds for the triangle
             // TODO this does not take z coord into account, so shapes do not get smaller as they get further away
             int minX = (int) Math.max(0, Math.ceil(Math.min(v1.x, Math.min(v2.x, v3.x))));
@@ -174,12 +202,18 @@ public class Viewer {
                     }
                 }
             }
+            fillProfiler.stop();
+
+            drawProfiler.start();
             // black previous frame
             g2.setColor(Color.BLACK);
             g2.fillRect(0, 0, renderPanel.getWidth(), renderPanel.getHeight());
             // draw new frame
             g2.drawImage(buffer, 0, 0, null);
+            drawProfiler.stop();
+            triangleProfiler.stop();
         }
+        allTrianglesProfiler.stop();
     }
 
     public static Color getShade(Color color, double shade) {

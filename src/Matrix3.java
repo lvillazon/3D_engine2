@@ -21,8 +21,14 @@ public class Matrix3 {
         return new Matrix3(result);
     }
 
-    Vertex applyTo(Vertex input) {
+    void applyTo(Vertex input, Vertex output) {
         // applies this matrix as a transformation to a single vertex
+        output.x = input.x * values[0] + input.y * values[3] + input.z * values[6];
+        output.y = input.x * values[1] + input.y * values[4] + input.z * values[7];
+        output.z = input.x * values[2] + input.y * values[5] + input.z * values[8];
+    }
+
+    Vertex applyTo(Vertex input) {
         return new Vertex(
                 input.x * values[0] + input.y * values[3] + input.z * values[6],
                 input.x * values[1] + input.y * values[4] + input.z * values[7],
@@ -30,8 +36,17 @@ public class Matrix3 {
         );
     }
 
-    Triangle applyTo(Triangle input) {
+    void applyTo(Triangle input, Triangle output) {
         // applies this matrix to each vertex in a triangle
-        return new Triangle(applyTo(input.v1), applyTo(input.v2), applyTo(input.v3), input.color);
+        applyTo(input.v1, output.v1);
+        applyTo(input.v2, output.v2);
+        applyTo(input.v3, output.v3);
     }
+
+    Triangle applyTo(Triangle input) {
+        input.v1 = applyTo(input.v1);
+        input.v1 = applyTo(input.v2);
+        input.v1 = applyTo(input.v2);
+        return new Triangle(applyTo(input.v1), applyTo(input.v2), applyTo(input.v3), input.color);
+   }
 }
