@@ -1,10 +1,10 @@
-import javax.swing.*;
-import java.awt.*;
-
 public class Main {
 
     public static void main(String[] args) {
-        Viewer v = new Viewer(Viewer.LAPTOP);
+        /*
+        // test polyhedron rotation
+        RotationViewer v = new RotationViewer();
+        Window w = new Window(Window.LAPTOP, v);
         Tetrahedron t = new Tetrahedron(new Vertex(100, 100, 100),
                 new Vertex(-100, -100, 100),
                 new Vertex(-100, 100, -100),
@@ -14,5 +14,10 @@ public class Main {
         while (true) {
             v.redraw();
         }
+
+         */
+        // test raycasting
+        TopDownMapView map = new TopDownMapView();
+        Window w = new Window(Window.LAPTOP, map);
     }
 }

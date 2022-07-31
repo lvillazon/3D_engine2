@@ -3,17 +3,13 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
 
-public class Viewer {
-    public static final int LAPTOP = 0; // flags to set whether to display optimised for laptop or desktop
-    public static final int DESKTOP = 1;
-    private final JFrame frame;
+public class RotationViewer extends JPanel{
+    // displays a single 3D polyhedron made up of triangles,
+    // with scroll bars to rotate in the pitch and roll axes
     private final Container pane;
     private final JSlider horizontalSlider;
     private final JSlider verticalSlider;
     private final JPanel renderPanel;
-    private int frameCount;          // used for fps calculation
-    private long frameStart;         // used for fps calculation
-    private long totalFrameDrawTime; // used for fps calculation
     private Profiler paintProfiler;  // track how long each part of the rendering takes
     private Profiler initProfiler;
     private Profiler allTrianglesProfiler;
@@ -24,14 +20,9 @@ public class Viewer {
     private Profiler drawProfiler;
     private Tetrahedron shape;  // TODO expand this to an arraylist of shapes in the scene
 
-    public Viewer(int monitorConfig) {
-        frame = new JFrame();
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        pane = frame.getContentPane();
+    public RotationViewer() {
+        pane = this;
         pane.setLayout(new BorderLayout());
-        frameCount = 0;
-        frameStart = 0;
-        totalFrameDrawTime = 0;
         paintProfiler = new Profiler("paint", 100);
         initProfiler = paintProfiler.addSubProfiler("init");
         allTrianglesProfiler = paintProfiler.addSubProfiler("triangles");
@@ -65,14 +56,7 @@ public class Viewer {
         verticalSlider.addChangeListener(e -> renderPanel.repaint());
 
         pane.add(renderPanel, BorderLayout.CENTER);
-        if (monitorConfig == LAPTOP) {
-            frame.setSize(1616, 876);  // full screen on my laptop
-            frame.setLocation(160, 1072);  // position for laptop when running dual monitors
-        } else {
-            frame.setSize(800, 600);
-            frame.setLocation(0, 0);       // normal position - top left of screen
-        }
-        frame.setVisible(true);
+        setVisible(true);
     }
 
     public void addShape(Tetrahedron shape) {
@@ -118,7 +102,7 @@ public class Viewer {
         Vertex v1,v2,v3;
         initProfiler.stop();
         allTrianglesProfiler.start();
-        
+
         for (Triangle q: shape.getTriangles()) {
             triangleProfiler.start();
             transformProfiler.start();
@@ -135,7 +119,7 @@ public class Viewer {
             // translate based on slider values
             int xOffset = (int)(
                     ((double)horizontalSlider.getValue()/horizontalSlider.getMaximum())
-                            * frame.getWidth());
+                            * getWidth());
             int zOffset = verticalSlider.getValue()*100;
             v1.x += xOffset;
             v1.y += renderPanel.getHeight()/2.0;
