@@ -6,8 +6,8 @@ import java.util.Arrays;
 public class Window {
     // container class used to hold any of the 3D experiments
     // any panel class can be passed to the constructor to be displayed
-    public static final int LAPTOP = 0; // flags to set whether to display optimised for laptop or desktop
-    public static final int DESKTOP = 1;
+    public static final int DEFAULT = 0; // flags to set whether to display optimised for single or dual monitor
+    public static final int DUAL_SCREEN = 1;
     private final JFrame frame;
     private final Container pane;
     private int frameCount;          // used for fps calculation
@@ -25,9 +25,11 @@ public class Window {
 
         // panel for render output
         pane.add(contents, BorderLayout.CENTER);
-        if (monitorConfig == LAPTOP) {
-            frame.setSize(1616, 876);  // full screen on my laptop
-            frame.setLocation(160, 1072);  // position for laptop when running dual monitors
+        if (monitorConfig == DUAL_SCREEN) {
+            // put the window full-screen on the primary monitor (the laptop screen, for a laptop + monitor setup)
+            frame.setUndecorated(true);
+            GraphicsDevice screen = GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()[0];
+            screen.setFullScreenWindow(frame);
         } else {
             frame.setSize(800, 600);
             frame.setLocation(0, 0);       // normal position - top left of screen

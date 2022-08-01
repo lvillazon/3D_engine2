@@ -7,7 +7,7 @@ public class TwoDMap {
     public TwoDMap() {
         maze = new int[][]{
                 {1,1,1,1,1,1,1,1,1,1},
-                {1,0,1,0,0,0,0,0,0,1},
+                {1,0,1,0,0,1,0,0,0,1},
                 {1,0,1,0,0,0,0,0,0,1},
                 {1,0,1,0,0,0,0,0,0,1},
                 {1,0,0,0,0,0,0,0,0,1},
@@ -28,6 +28,15 @@ public class TwoDMap {
     }
 
     public boolean isWall(int x, int y) {
-        return (maze[y][x] == 1);
+        System.out.print("checking:"+x+","+y);
+        if (x>=0 && x<width() && y>=0 && y<height()) {
+            System.out.println("...is " + (maze[y][x]==1));
+            return (maze[y][x] == 1);
+        }
+        return true;  // all locations outside the grid count as wall
+    }
+
+    public boolean isWall(double x, double y) {
+        return isWall((int)x, (int)y);
     }
 }
