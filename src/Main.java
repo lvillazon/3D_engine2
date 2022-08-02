@@ -33,6 +33,6 @@ public class Main {
         splitScreen.add(threeD);
         splitScreen.setVisible(true);
 
-        Window w2 = new Window(Window.DUAL_SCREEN, splitScreen);
+        Window w2 = new Window(Window.LAPTOP, splitScreen);
     }
 }

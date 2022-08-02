@@ -30,6 +30,11 @@ public class TopDownMapView extends JPanel {
         return playerMapY;
     }
 
+    private double distanceTo(double x, double y) {
+        // pythagorean distance from player position to x,y
+        return Math.sqrt(Math.pow(getPlayerX()-x, 2) + Math.pow(getPlayerY()-y, 2));
+    }
+
     @Override
     public void paint(Graphics g) {
         super.paint(g);
@@ -38,17 +43,22 @@ public class TopDownMapView extends JPanel {
         int grid_height = getHeight() / maze.height();
         int grid_width = getWidth() / maze.width();
         int gridSize = Math.min(grid_width, grid_height);
-        g2.setColor(Color.black);
         for (int x = 0; x < maze.width(); x++) {
             for (int y = 0; y < maze.height(); y++) {
                 if (maze.isWall(x, y)) {
+                    g2.setColor(Color.black);
                     g2.fillRect(x * gridSize, y * gridSize, gridSize-1, gridSize-1);
+                    // label wall squares with their map coords
+                    g2.setColor(Color.white);
+                    String coordText = Integer.toString(x) + "," + Integer.toString(y);
+                    g2.drawString(coordText, x*gridSize + 30, y*gridSize + gridSize/2);
                 }
             }
         }
 
         // draw the player position
-        g2.setColor(Color.red);
+        g2.setColor(Color.green);
+        g2.setStroke(new BasicStroke(3));
         int playerScreenX = (int) (playerMapX * gridSize);
         int playerScreenY = (int) (playerMapY * gridSize);
         g2.fillRect(playerScreenX - PLAYER_SIZE / 2,
@@ -61,49 +71,92 @@ public class TopDownMapView extends JPanel {
         );
 
         // draw ray casts
-        double rx = 0, ry = 0;
-        double rayAngle = getHeading();
+        double rx, ry;
         double rayXOffset, rayYOffset;  // used to extend the ray cast across the grid
-        double inverseTan = 1/Math.tan(rayAngle);
-        // TODO check vertical intersection points too
-        //1. find 2D map coords of ray intersection with the nearest horizontal grid line
-        if (rayAngle<Math.PI) { // looking up
-            System.out.println("up");
-            // y coord is just the player y, rounded down to the nearest int (each map square is 1x1)
-            ry = (int) getPlayerY();
-            // x coord is calculated using the inverse Tan of the heading
-            rx = (getPlayerY() - ry) * inverseTan + getPlayerX();
-            // calculate offsets needed for the next (and subsequent) grid squares as we extend the ray cast
-            rayYOffset = -1; // moving up one whole square
-            rayXOffset = -rayYOffset * inverseTan;
-        } else { // looking down
-            System.out.println("down");
-            // round up to the next grid line
-            ry = (int) (getPlayerY() + 1);
-            rx = (getPlayerY() - ry) * inverseTan + getPlayerX();
-            rayYOffset = 1; // moving down one square
-            rayXOffset = -rayYOffset * inverseTan;
-        }
-        // if we are facing directly left or right, the ray cannot intersect a horizontal grid line
-        int viewDistance = 0;
-        if (rayAngle == 0 || rayAngle == Math.PI) {
-            viewDistance = MAX_VIEW_RANGE;
-        }
-        // look for an intersection with a map wall
-        while (viewDistance < MAX_VIEW_RANGE && !maze.isWall(rx+rayXOffset/2, ry+rayYOffset/2)) {
-            // DEBUG draw collision check points
-            g2.fillRect((int) ((rx+rayXOffset/2) * gridSize), (int) ((ry+rayYOffset/2) * gridSize),10,10);
-            ry += rayYOffset;
-            rx += rayXOffset;
-            viewDistance++;
-        }
 
-        g2.drawLine(playerScreenX, playerScreenY,
-                (int) (rx * gridSize),
-                (int) (ry * gridSize)
-        );
+        for (double angle=-Math.PI/4; angle<Math.PI/4; angle+=.05) {
+            double rayAngle = getHeading() + angle;
+            if (rayAngle < 0) {
+                rayAngle += 2*Math.PI;
+            }
+            if (rayAngle > 2*Math.PI) {
+                rayAngle -= 2*Math.PI;
+            }
+            double inverseTan = 1 / Math.tan(rayAngle);
+            double normalTan = Math.tan(rayAngle);
 
-        System.out.println("heading:"+getHeading()+" player:"+getPlayerX()+","+getPlayerY()+" ray:"+rx+","+ry+" dist:"+viewDistance);
+            //1. find 2D map coords of ray intersection with the nearest horizontal grid line
+            if (rayAngle < Math.PI) { // looking up
+                // y coord is just the player y, rounded down to the nearest int (each map square is 1x1)
+                ry = (int) getPlayerY() - 0.001; // subtract a tiny amount to ensure it rounds in the right direction
+                // x coord is calculated using the inverse Tan of the heading
+                rx = (getPlayerY() - ry) * inverseTan + getPlayerX();
+                // calculate offsets needed for the next (and subsequent) grid squares as we extend the ray cast
+                rayYOffset = -1; // moving up one whole square
+                rayXOffset = -rayYOffset * inverseTan;
+            } else { // looking down
+                // round up to the next grid line
+                ry = (int) (getPlayerY() + 1);
+                rx = (getPlayerY() - ry) * inverseTan + getPlayerX();
+                rayYOffset = 1; // moving down one square
+                rayXOffset = -rayYOffset * inverseTan;
+            }
+            // if we are facing directly left or right, the ray cannot intersect a horizontal grid line
+            int viewDistance = 0;
+            if (rayAngle == 0 || rayAngle == Math.PI) {
+                viewDistance = MAX_VIEW_RANGE;
+            }
+            // look for an intersection with a map wall
+            while (viewDistance < MAX_VIEW_RANGE && !maze.isWall(rx, ry)) {
+                ry += rayYOffset;
+                rx += rayXOffset;
+                viewDistance++;
+            }
+            // save this ray, so we can compare with the vertical grid collision ray
+            double horizontalColliderRayX = rx;
+            double horizontalColliderRayY = ry;
+
+            //2. Repeat for vertical grid lines
+            g2.setColor(Color.red);
+            g2.setStroke(new BasicStroke(1));
+            if (rayAngle > Math.PI / 2 && rayAngle < Math.PI * 3 / 2) { // looking left
+                rx = (int) getPlayerX() - 0.001;
+                ry = (getPlayerX() - rx) * normalTan + getPlayerY();
+                rayXOffset = -1;
+                rayYOffset = -rayXOffset * normalTan;
+            } else { // looking right
+                rx = (int) (getPlayerX() + 1);
+                ry = (getPlayerX() - rx) * normalTan + getPlayerY();
+                rayXOffset = 1;
+                rayYOffset = -rayXOffset * normalTan;
+            }
+            // if we are facing directly up or down, the ray cannot intersect a vertical grid line
+            viewDistance = 0;
+            if (rayAngle == Math.PI / 2 || rayAngle == Math.PI * 3 / 2) {
+                viewDistance = MAX_VIEW_RANGE;
+            }
+            // look for an intersection with a map wall
+            while (viewDistance < MAX_VIEW_RANGE && !maze.isWall(rx, ry)) {
+                ry += rayYOffset;
+                rx += rayXOffset;
+                viewDistance++;
+            }
+
+            // draw the shorter of the two rays (horizontal or vertical colliders)
+            if (distanceTo(horizontalColliderRayX, horizontalColliderRayY) < distanceTo(rx, ry)) {
+                g2.drawLine(playerScreenX, playerScreenY,
+                        (int) (horizontalColliderRayX * gridSize),
+                        (int) (horizontalColliderRayY * gridSize)
+                );
+            } else {
+                g2.drawLine(playerScreenX, playerScreenY,
+                        (int) (rx * gridSize),
+                        (int) (ry * gridSize)
+                );
+            }
+        }
+        // DEBUG
+        // System.out.println("heading:"+getHeading()/Math.PI+"Pi, player:"+getPlayerX()+","+getPlayerY()+" ray:"+rx+","+ry+" dist:"+viewDistance);
 
     }
 

@@ -9,11 +9,11 @@ public class TwoDMap {
                 {1,1,1,1,1,1,1,1,1,1},
                 {1,0,1,0,0,1,0,0,0,1},
                 {1,0,1,0,0,0,0,0,0,1},
-                {1,0,1,0,0,0,0,0,0,1},
-                {1,0,0,0,0,0,0,0,0,1},
-                {1,1,1,1,0,0,0,0,0,1},
-                {1,0,0,0,0,0,0,0,0,1},
-                {1,0,1,0,0,0,0,0,0,1},
+                {1,0,1,0,0,1,0,0,0,1},
+                {1,0,0,0,0,1,0,0,0,1},
+                {1,1,1,1,0,1,1,0,1,1},
+                {1,0,0,0,0,0,1,0,0,1},
+                {1,0,1,1,1,1,1,1,0,1},
                 {1,0,1,0,0,0,0,0,0,1},
                 {1,1,1,1,1,1,1,1,1,1}
         };
@@ -28,15 +28,16 @@ public class TwoDMap {
     }
 
     public boolean isWall(int x, int y) {
-        System.out.print("checking:"+x+","+y);
         if (x>=0 && x<width() && y>=0 && y<height()) {
-            System.out.println("...is " + (maze[y][x]==1));
             return (maze[y][x] == 1);
         }
         return true;  // all locations outside the grid count as wall
     }
 
     public boolean isWall(double x, double y) {
+//        System.out.print("raw:"+x+","+y);
+//        System.out.print(" rounds to:"+(int)x+","+(int)y);
+//        System.out.println("...is " + isWall((int)x, (int)y));
         return isWall((int)x, (int)y);
     }
 }
