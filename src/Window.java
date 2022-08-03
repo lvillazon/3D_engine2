@@ -16,7 +16,7 @@ public class Window {
     private long totalFrameDrawTime; // used for fps calculation
 
     public Window(int monitorConfig, JPanel contents) {
-        frame = new JFrame();
+        frame = new JFrame("Raycaster");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         pane = frame.getContentPane();
         pane.setLayout(new BorderLayout());
@@ -27,7 +27,7 @@ public class Window {
         // panel for render output
         pane.add(contents, BorderLayout.CENTER);
         if (monitorConfig == LAPTOP) {
-            frame.setSize(1900, 1200);  // native resolution on my laptop
+            frame.setSize(1600, 900);  // native resolution on my laptop
             frame.setLocation(-8, 0);       // normal position - top left of screen
         } else if (monitorConfig == FULL_SCREEN) {
             // put the window full-screen on the primary monitor (the laptop screen, for a laptop + monitor setup)

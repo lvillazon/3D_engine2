@@ -22,7 +22,7 @@ public class Main {
 
         // test raycasting
         TopDownMapView map = new TopDownMapView();
-        RaycastView threeD = new RaycastView(map);
+        FirstPersonView threeD = new FirstPersonView(map);
         // create side-by-side split-screen panel for the map and raycast view
         JPanel splitScreen = new JPanel();
         splitScreen.setLayout(null);
