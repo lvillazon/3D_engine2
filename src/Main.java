@@ -4,10 +4,11 @@ import java.awt.*;
 public class Main {
 
     public static void main(String[] args) {
-        /*
+
         // test polyhedron rotation
+        /*
         RotationViewer v = new RotationViewer();
-        Window w = new Window(Window.DESKTOP, v);
+        Window w = new Window(Window.FULL_SCREEN, v);
         Tetrahedron t = new Tetrahedron(new Vertex(100, 100, 100),
                 new Vertex(-100, -100, 100),
                 new Vertex(-100, 100, -100),
@@ -15,10 +16,12 @@ public class Main {
         );
         v.addShape(t);
         // TODO: replace with proper swing timer object
-        //while (true) {
-        //    v.redraw();
-        //}
-        */
+        while (true) {
+           v.redraw();
+        }
+
+         */
+
 
         // test raycasting
         TopDownMapView map = new TopDownMapView();
@@ -34,5 +37,7 @@ public class Main {
         splitScreen.setVisible(true);
 
         Window w2 = new Window(Window.LAPTOP, splitScreen);
+        
+
     }
 }
