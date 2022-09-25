@@ -1,5 +1,7 @@
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.KeyEvent;
 
 public class TopDownMapView extends JPanel {
@@ -18,6 +20,14 @@ public class TopDownMapView extends JPanel {
         playerMapY = 8.5;
         heading = Math.PI/2;  // straight up
         KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(new KeyboardHandler());
+
+        addComponentListener(new ComponentAdapter() {
+            public void componentResized(ComponentEvent e) {
+                setPreferredSize(new Dimension(getParent().getWidth()/2, getParent().getHeight()));
+                revalidate();
+            }
+        });
+
     }
 
     public double getHeading() {
@@ -39,6 +49,7 @@ public class TopDownMapView extends JPanel {
 
     @Override
     public void paint(Graphics g) {
+        //System.out.println(getWidth()+", "+getHeight());
         super.paint(g);
         Graphics2D g2 = (Graphics2D) g;
         // draw the maze as a series of squares

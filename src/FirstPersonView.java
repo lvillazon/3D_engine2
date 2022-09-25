@@ -2,6 +2,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 
 public class FirstPersonView extends JPanel {
     // shows the 3D view in the maze, from the player POV
@@ -14,13 +16,24 @@ public class FirstPersonView extends JPanel {
     private final Color darkColor;
     private final Color skyColor;
     private final Color floorColor;
+    private final Texture wallTexture;
 
     public FirstPersonView(TopDownMapView map) {
         brightColor = new Color(220, 0, 0);
         darkColor = new Color(160, 0, 0);
         skyColor = new Color(0, 50, 200);
         floorColor = new Color(160, 160, 160);
+        wallTexture = new Texture();
+
         this.map = map;
+
+        addComponentListener(new ComponentAdapter() {
+            public void componentResized(ComponentEvent e) {
+                setPreferredSize(new Dimension(getParent().getWidth()/2, getParent().getHeight()));
+                revalidate();
+            }
+        });
+
         frameTimer = new Timer(1000/60, new ActionListener() { // fire 60 times per second
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -50,7 +63,8 @@ public class FirstPersonView extends JPanel {
         int hScale = (int)(getWidth() / VIEW_ANGLE * RESOLUTION );
         g2.setStroke(new BasicStroke(hScale));
         double i=0;
-        while (i<getWidth() + hScale) {
+        // quit rendering if the window is ever so small that hScale is 0
+        while (i<getWidth() + hScale && hScale>0) {
             double rayLength = map.rayCaster.cast(map.getPlayerX(), map.getPlayerY(), rayAngle);
 
             // fix fish-eye distortion
@@ -69,7 +83,7 @@ public class FirstPersonView extends JPanel {
             if (map.rayCaster.inShadow()) {
                 g2.setColor(darkColor);
             } else {
-                g2.setColor(brightColor);
+                g2.setColor(wallTexture.valueAt(brightColor, (int)(map.getPlayerX()+segmentXPos), segmentHeight));
             }
 
             g2.drawLine(segmentXPos, floorLevel, segmentXPos, floorLevel - segmentHeight);

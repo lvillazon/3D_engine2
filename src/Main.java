@@ -28,16 +28,15 @@ public class Main {
         FirstPersonView threeD = new FirstPersonView(map);
         // create side-by-side split-screen panel for the map and raycast view
         JPanel splitScreen = new JPanel();
-        splitScreen.setLayout(null);
-        Rectangle bounds = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
-        map.setBounds(0,0, bounds.width/2, bounds.height);
-        splitScreen.add(map);
-        threeD.setBounds(bounds.width/2,0, bounds.width/2, bounds.height);
-        splitScreen.add(threeD);
-        splitScreen.setVisible(true);
+        splitScreen.setLayout(new BorderLayout());
+        System.out.println("Adding views");
+        splitScreen.add(map, BorderLayout.WEST);
+        splitScreen.add(threeD, BorderLayout.EAST);
 
         Window w2 = new Window(Window.LAPTOP, splitScreen);
-        
+        System.out.println("Setting visible");
+        w2.setVisible(true);
+        System.out.println("Finished setup");
 
     }
 }
