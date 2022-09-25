@@ -3,6 +3,7 @@ public class RayCaster {
     private TwoDMap walls;
     private final int MAX_VIEW_RANGE = 8;  // number of grid squares to throw each ray
     private boolean horizontalCollision;
+    private double collisionX; // the x coord of the last ray cast collision point (used for texture lookups)
 
     public RayCaster(TwoDMap walls) {
         this.walls = walls;
@@ -11,6 +12,10 @@ public class RayCaster {
     private double distanceBetween(double x1, double y1, double x2, double y2) {
         // pythagorean distance from (x1,y1) to (x2,y2)
         return Math.sqrt(Math.pow(x1-x2, 2) + Math.pow(y1-y2, 2));
+    }
+
+    public int rayX() {
+        return (int)(collisionX);
     }
 
     public double cast(double fromX, double fromY, double rayAngle) {
@@ -79,13 +84,18 @@ public class RayCaster {
 
         // return the length of the shorter of the two rays (horizontal or vertical colliders)
         // and set a flag so that we can tell which collision occurred - this is used for a simple lighting check
+        // we also save the x coord of the ray collision, to be used for texture lookups
+        // TODO is this actually useful or do we need something else?
+        // doesn't seem to work when I tried it, but maybe it isn't scaled right yet
         double hDistance = distanceBetween(fromX, fromY, horizontalColliderRayX, horizontalColliderRayY);
         double vDistance = distanceBetween(fromX, fromY, rx, ry);
         if (hDistance < vDistance) {
             horizontalCollision = true;
+            collisionX = horizontalColliderRayX;
             return hDistance;
         } else {
             horizontalCollision = false;
+            collisionX = rx;
             return vDistance;
         }
     }

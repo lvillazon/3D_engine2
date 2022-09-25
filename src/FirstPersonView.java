@@ -81,12 +81,11 @@ public class FirstPersonView extends JPanel {
             int segmentHeight = (int)(1/rayLength * vScale);
             int segmentXPos = (int)(getWidth() - i);
             if (map.rayCaster.inShadow()) {
-                g2.setColor(darkColor);
+                drawVLine(g2, darkColor, segmentXPos, floorLevel, segmentHeight);
             } else {
-                g2.setColor(wallTexture.valueAt(brightColor, (int)(map.getPlayerX()+segmentXPos), segmentHeight));
+                drawVLine(g2, brightColor, segmentXPos, floorLevel, segmentHeight);
             }
 
-            g2.drawLine(segmentXPos, floorLevel, segmentXPos, floorLevel - segmentHeight);
 
             // cast a new ray, 1 degree over
             rayAngle += ONE_DEGREE * RESOLUTION;
@@ -96,5 +95,17 @@ public class FirstPersonView extends JPanel {
             i += hScale;
         }
 
+    }
+
+    private void drawVLine(Graphics2D g2, Color baseColor, int x, int bottom, int length) {
+        double textureY = 0.0;
+        //double textureX = ??? how do we work this out?;
+        double textureYStep = 32.0/length;
+        for (int y=bottom; y>bottom-length; y--) {
+            Color c = wallTexture.valueAt(baseColor, 0, (int)(textureY));
+            g2.setColor(c);
+            g2.drawLine(x, y, x, y);  // Java lacks a point draw routine, so we draw a line of 1 pixel
+            textureY += textureYStep;
+        }
     }
 }
